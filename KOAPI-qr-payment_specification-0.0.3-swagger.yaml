@@ -1,0 +1,737 @@
+openapi: 3.0.0
+info:
+  title: Open API - QR Payment
+  description: QR Payment specification
+  version: "0.0.3"
+
+servers:
+  - url: https://apitest.kasikornbank.com:12002
+    description: Dummy url for Dev
+    
+paths:
+  /pos/register:
+    post:
+      tags: 
+        - Registration
+      summary: Online registration
+      description: >
+        ใช้สาหรับสร้างบัญชีผู้ใช้หรือสมัครใช้บริการรับชาระเงินผ่าน Thai QR, Alipay
+        หรือ WeChat Pay จากระบบของ Partner นั่นเอง
+        
+        > Used to create an account or apply for payment via Thai QR, Alipay.
+        Or WeChat Pay from Partner's system.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/register'
+      responses:
+        '200':
+          description: Response OK
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/registerResponse'
+                
+  /pos/qr_request:
+    post:
+      tags: 
+        - QR Request
+      summary: Request to generate the QR
+      description: > 
+        ใช้เมื่อลูกค้าต้องการชาระเงินผ่าน QR โดยสามารถขอสร้าง Thai QR, Alipay หรือ WeChat Pay QR ได้
+        
+        > Use when customers want to pay via QR. Can create Thai QR, Alipay or WeChat Pay QR.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/generateQR'
+      responses:
+        '200':
+          description: Response OK
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/generateQRResponse'
+                
+  /pos/qr_cancel:
+    post:
+      tags: 
+        - QR Request
+      summary: Cancel QR
+      description: >
+        ใช้เมื่อกรณีต้องการยกเลิก QR เนื่องจากยกเลิกการขายหรือต้องการเปลี่ยนราคารับชำระใหม่ ทั้งนี้ต้องใช้หมายเลขรายการที่ต้องการยกเลิก เมื่อยกเลิกแล้ว QR นั้นจะไม่สามารถรับชำระได้. 
+        
+        > Used when wanting to cancel the QR due to cancellation of sales or wanting to change the price to receive a new payment. However, the QR transaction number is required to cancel. Once canceled, the QR code will not be accepted.
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/qr_cancel'
+      responses:
+        '200':
+          description: Response OK
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/qr_cancelResponse'
+                
+  /pos/inquire_payment:
+    post:
+      tags: 
+        - Payment Transactions
+      summary: Inquiry payment
+      description: > 
+        ใช้เพื่อสอบถามสถานะข้อมูลของรายการกรณีร้านค้าไม่ได้รับสถานะกลับหลังจากลูกค้าทารายการ Payment ให้กับร้านค้าแล้ว
+        
+        > Used to inquire about the status of the transaction. In case the store does not receive the status back after the customer makes a payment transaction to the store.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InquiryPayment'
+      responses:
+        '200':
+          description: Response OK
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/InquiryPaymentResponse'
+                
+  /pos/void_payment:
+    post:
+      summary: Void Payment
+      tags: 
+        - Payment Transactions
+      description: > 
+        ใช้กรณีที่ร้านค้าต้องการยกเลิกรายการที่ถูกชำระแล้ว และคืนเงินให้กับลูกค้าของร้านค้า
+        
+        > Used when the merchant wants to cancel the paid item. And refund the money to the store's customers.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/void_payment'
+      responses:
+        '200':
+          description: Response OK
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/void_paymentResponse'
+                
+  /pos/settlement:
+    post:
+      summary: Settelment Request
+      tags: 
+        - Payment Transactions
+      description: > 
+        ใช้เพื่อทาการ Request เงินที่ร้านค้าขายได้เข้าบัญชีเงินฝากที่สมัครเป็นบัญชีรับเงินไว้
+        
+        > Used to request the money that the merchant has entered into the deposit account that has been registered as a receiving account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/settlement'
+      responses:
+        '200':
+          description: Response OK
+          content:
+            application/json:
+              schema: 
+                  $ref: '#/components/schemas/settlementResponse'
+                    
+components:
+  schemas:
+    register:
+      properties:
+        partnerTxnUid:
+          type: string
+          maxLength: 15
+          description: ID to uniquely define each request from partner
+          example: RGH001030118001
+        partnerId:
+          type: string
+          maxLength: 10
+          description: Partner identifier. This ID will be provided to each partner by KBank
+          example: POS001
+        partnerSecret:
+          type: string
+          maxLength: 32
+          description: Secret key to identify each partner
+          example: PPsaiu7890yyatcionmsp01ooYY46789
+        requestDt:
+          type: string
+          maxLength: 33
+          description: Timestamp when partner send this request to KBank in ISO 8601 format
+          example: "2018-01-03T12:30:00+07:00"
+        partnerShopId:
+          type: string
+          maxLength: 10
+          description: Shop ID to uniquely identify each shop in partner's system.
+          example: H001
+        authChannel:
+          type: string
+          maxLength: 10
+          description: Authentication channel. Please refer to Appendix for possible values
+          example: KPLUS
+        mobileNo:
+          type: string
+          maxLength: 10
+          description: Mobile phone number to be used for authentication
+          example: 0859950511
+        shopNameTh:
+          type: string
+          maxLength: 50
+          description: Shop name in Thai
+          example: ร้านค้าเพื่อการทดสอบ 001
+        shopNameEn:
+          type: string
+          maxLength: 50
+          description: Shop name in English
+          example: Test shop no 001
+        shopEmail:
+          type: string
+          maxLength: 50
+          description: Shop contact email address
+          example: testshop001@abc.com
+        identityDocId:
+          type: string
+          maxLength: 20
+          description: Identity document ID of given shop. This can be either Thai National ID for individual customer or Tax ID for corporate customer.
+          example: 3700900072888
+        shopLocation:
+          type: object
+          description: Shop's location information
+          properties:
+            lat:
+              type: number
+              description: Latitude
+              example: 37.4224764
+            lng:
+              type: number
+              description: Longitude
+              example: -122.0842499
+      required:  
+        - partnerTxnUid
+        - partnerId
+        - partnerSecret
+        - requestDt
+        - partnerShopId
+        - authChannel
+        - mobileNo
+        - shopNameTh
+        - shopNameEn
+        - shopEmail
+        - identityDocId
+
+    registerResponse:
+        properties:
+                  partnerTxnUid:
+                    type: string
+                    maxLength: 15
+                    description: This value will be copied from request message.
+                    example: "RGH001030118001"
+                  partnerId:
+                    type: string
+                    maxLength: 10
+                    description: This value will be copied from request message.
+                    example: "POS001"
+                  statusCode:
+                    type: string
+                    maxLength: 2
+                    description: Status code. Please refer to Appendix for possible values
+                    example: "00"
+                  errorCode:
+                    type: string
+                    maxLength: 35
+                    description: Code to identify the error.
+                    example:
+                  errorDesc:
+                    type: string
+                    maxLength: 150
+                    description: Description of the error.
+                    example:
+        required: 
+          - partnerTxnUid
+          - partnerId
+          - statusCode
+    generateQR:
+      properties:
+        partnerTxnUid:
+          type: string
+          maxLength: 15
+          description: ID to uniquely define each request from partner
+          example: QRH001030118001
+        partnerId:
+          type: string
+          maxLength: 10
+          description: Partner identifier. This ID will be provided to each partner by KBank
+          example: POS001
+        partnerSecret:
+          type: string
+          maxLength: 32
+          description: Secret key to identify each partner
+          example: PPsaiu7890yyatcionmsp01ooYY46789
+        requestDt:
+          type: string
+          maxLength: 33
+          description: Timestamp when partner send this request to KBank in ISO 8601 format
+          example: "2018-01-03T12:30:00+07:00"
+        merchantId:
+          type: string
+          maxLength: 14
+          description: Shop's merchant ID in KBank's system
+          example: "BEV06000080200"
+        terminalId:
+          type: string
+          maxLength: 8
+          description: Shop's terminal ID in KBank's system
+          example: "09000107"
+        qrType:
+          type: string
+          maxLength: 1
+          description: Type of QR payment. Please refer to Appendix for possible values
+          example: "3"
+        txnAmount:
+          type: number
+          description: Amount of transaction.Must be positive number.Number of digits depends on each currency.
+          example: 100.50
+        txnCurrencyCode:
+          type: string
+          maxLength: 3
+          description: Currency code of transaction amount in ISO 4217. Currently support only "THB"
+          example: "THB"
+        reference1:
+          type: string
+          maxLength: 100
+          description: Transaction reference 1
+          example: "INV001"
+        reference2:
+          type: string
+          maxLength: 100
+          description: Transaction reference 2
+          example: 
+        reference3:
+          type: string
+          maxLength: 100
+          description: Transaction reference 3
+          example: 
+        reference4:
+          type: string
+          maxLength: 100
+          description: Transaction reference 4
+          example: 
+        metadata:
+          type: string
+          maxLength: 500
+          description: Item details in following format <item_1> <amount_1>, <item_2> <anount_2> . . ., <item_n> <amount_n>
+          example: "ถุงผ้า 80.50 ,ดินสอ 20.00"
+      required:  
+          - partnerTxnUid
+          - partnerId
+          - partnerSecret
+          - requestDt
+          - merchantId
+          - qrType
+          - txnAmount
+          - txnCurrencyCode
+          - reference1
+    generateQRResponse:
+        properties:
+          partnerTxnUid:
+            type: string
+            maxLength: 15
+            description: This value will be copied from request message.
+            example: "QRH001030118001"
+          partnerId:
+            type: string
+            maxLength: 10
+            description: This value will be copied from request message.
+            example: "POS001"
+          statusCode:
+            type: string
+            maxLength: 2
+            description: Status code. Please refer to Appendix for possible values
+            example: "00"
+          errorCode:
+            type: string
+            maxLength: 35
+            description: Code to identify the error.
+            example:
+          errorDesc:
+            type: string
+            maxLength: 150
+            description: Description of the error.
+            example:
+          accountName:
+            type: string
+            maxLength: 100
+            description: Account name of receiving merchant
+            example: "นายสมชาย รักกสิกร"
+          qrCode:
+            type: string
+            maxLength: 250
+            description: QR code data or URL to QR code image.Please refer to Appendix.
+            example: 00020101021230690016A000000677010112011301055580807780211LEX110000020313LEX02039306931590016A00000067701011301030040211LEX110000020413LEX0260393069530376440512.815802TH6304A2C1"
+        required:
+          - partnerTxnUid
+          - partnerId
+          - statusCode
+
+    InquiryPayment:
+      properties:
+        partnerTxnUid:
+          type: string
+          maxLength: 15
+          description: ID to uniquely define each request from partner
+          example: INQ001030118001
+        partnerId:
+          type: string
+          maxLength: 10
+          description: Partner identifier. This ID will be provided to each partner by KBank
+          example: POS001
+        partnerSecret:
+          type: string
+          maxLength: 32
+          description: Secret key to identify each partner
+          example: PPsaiu7890yyatcionmsp01ooYY46789
+        requestDt:
+          type: string
+          maxLength: 33
+          description: Timestamp when partner send this request to KBank in ISO 8601 format
+          example: "2018-01-03T12:30:00+07:00"
+        merchantId:
+          type: string
+          maxLength: 14
+          description: Shop's merchant ID in KBank's system
+          example: "BEV06000080200"
+        terminalId:
+          type: string
+          maxLength: 8
+          description: Shop's terminal ID in KBank's system
+          example: "09000107"
+        qrType:
+          type: string
+          maxLength: 1
+          description: Type of QR payment. Please refer to Appendix for possible values
+          example: "3"
+        origPartnerTxnUid:
+          type: string
+          maxLength: 15
+          description: Original partnerTxnUid of QR request to inquire the payment status
+          example: "QRH001030118001"
+      required:  
+          - partnerTxnUid
+          - partnerId
+          - partnerSecret
+          - requestDt
+          - merchantId
+          - qrType
+          - origPartnerTxnUid
+    InquiryPaymentResponse:
+        properties:
+          partnerTxnUid:
+            type: string
+            maxLength: 15
+            description: This value will be copied from request message.
+            example: "INQ001030118001"
+          partnerId:
+            type: string
+            maxLength: 10
+            description: This value will be copied from request message.
+            example: "POS001"
+          statusCode:
+            type: string
+            maxLength: 2
+            description: Status code. Please refer to Appendix for possible values
+            example: "00"
+          errorCode:
+            type: string
+            maxLength: 35
+            description: Code to identify the error.
+            example:
+          errorDesc:
+            type: string
+            maxLength: 150
+            description: Description of the error.
+            example:
+          txnStatus:
+            type: string
+            maxLength: 20
+            description: Status of QR transaction with given partnerTxnUid. Please refer to Appendix for possible values
+            example: "REQUESTED"
+          
+        required:
+          - partnerTxnUid
+          - partnerId
+          - statusCode
+          
+    qr_cancel:
+      properties:
+        partnerTxnUid:
+          type: string
+          maxLength: 15
+          description: ID to uniquely define each request from partner
+          example: CCH001030118001
+        partnerId:
+          type: string
+          maxLength: 10
+          description: Partner identifier. This ID will be provided to each partner by KBank
+          example: POS001
+        partnerSecret:
+          type: string
+          maxLength: 32
+          description: Secret key to identify each partner
+          example: PPsaiu7890yyatcionmsp01ooYY46789
+        requestDt:
+          type: string
+          maxLength: 33
+          description: Timestamp when partner send this request to KBank in ISO 8601 format
+          example: "2019-12-11T12:30:00+07:00"
+        merchantId:
+          type: string
+          maxLength: 14
+          description: Shop's merchant ID in KBank's system.
+          example: BEV06000080200
+        terminalId:
+          type: string
+          maxLength: 8
+          description: Shop's terminal ID in KBank's system.
+          example: 09000107  
+        qrType:
+          type: string
+          maxLength: 1
+          description: Type of QR payment. Please refer to Appendix for possible values.
+          example: 3    
+        origPartnerTxnUid:
+          type: string
+          maxLength: 15
+          description: Original partnerTxnUid of QR request to inquire the payment status.
+          example: QRH001030118001  
+      required:  
+        - partnerTxnUid
+        - partnerId
+        - partnerSecret
+        - requestDt
+        - merchantId
+        - qrType
+        - origPartnerTxnUid 
+    qr_cancelResponse:
+      properties:
+        partnerTxnUid:
+          type: string
+          maxLength: 15
+          description: This value will be copied from request message.
+          example: "CCH001030118001"
+        partnerId:
+          type: string
+          maxLength: 10
+          description: This value will be copied from request message.
+          example: "POS001"
+        statusCode:
+          type: string
+          maxLength: 2
+          description: Status code. Please refer to Appendix for possible values
+          example: "00"
+        errorCode:
+          type: string
+          maxLength: 35
+          description: Code to identify the error.
+          example:
+        errorDesc:
+          type: string
+          maxLength: 150
+          description: Description of the error.
+          example:
+      required:
+        - partnerTxnUid
+        - partnerId
+        - statusCode
+    void_payment:
+      properties:
+        partnerTxnUid:
+          type: string
+          maxLength: 15
+          description: ID to uniquely define each request from partner
+          example: VOD001030118001
+        partnerId:
+          type: string
+          maxLength: 10
+          description: Partner identifier. This ID will be provided to each partner by KBank
+          example: POS001
+        partnerSecret:
+          type: string
+          maxLength: 32
+          description: Secret key to identify each partner
+          example: PPsaiu7890yyatcionmsp01ooYY46789
+        requestDt:
+          type: string
+          maxLength: 33
+          description: Timestamp when partner send this request to KBank in ISO 8601 format
+          example: "2019-12-11T12:30:00+07:00"
+        merchantId:
+          type: string
+          maxLength: 14
+          description: Shop's merchant ID in KBank's system.
+          example: BEV06000080200
+        terminalId:
+          type: string
+          maxLength: 8
+          description: Shop's terminal ID in KBank's system.
+          example: 09000107  
+        qrType:
+          type: string
+          maxLength: 1
+          description: Type of QR payment. Please refer to Appendix for possible values.
+          example: 3    
+        origPartnerTxnUid:
+          type: string
+          maxLength: 15
+          description: Original partnerTxnUid of QR request to inquire the payment status.
+          example: QRH001030118001  
+      required:  
+        - partnerTxnUid
+        - partnerId
+        - partnerSecret
+        - requestDt
+        - merchantId
+        - qrType
+        - origPartnerTxnUid 
+    void_paymentResponse:
+      properties:
+        partnerTxnUid:
+          type: string
+          maxLength: 15
+          description: This value will be copied from request message.
+          example: "VOD001030118001"
+        partnerId:
+          type: string
+          maxLength: 10
+          description: This value will be copied from request message.
+          example: "POS001"
+        statusCode:
+          type: string
+          maxLength: 2
+          description: Status code. Please refer to Appendix for possible values
+          example: "00"
+        errorCode:
+          type: string
+          maxLength: 35
+          description: Code to identify the error.
+          example:
+        errorDesc:
+          type: string
+          maxLength: 150
+          description: Description of the error.
+          example:
+      required: 
+        - partnerTxnUid
+        - partnerId
+        - statusCode
+    
+    settlement:
+      properties:
+        partnerTxnUid:
+          type: string
+          maxLength: 15
+          description: ID to uniquely define each request from partner
+          example: STM001030118001
+        partnerId:
+          type: string
+          maxLength: 10
+          description: Partner identifier. This ID will be provided to each partner by KBank
+          example: POS001
+        partnerSecret:
+          type: string
+          maxLength: 32
+          description: Secret key to identify each partner
+          example: PPsaiu7890yyatcionmsp01ooYY46789
+        requestDt:
+          type: string
+          maxLength: 33
+          description: Timestamp when partner send this request to KBank in ISO 8601 format
+          example: "2018-01-03T12:30:00+07:00"
+        merchantId:
+          type: string
+          maxLength: 14
+          description: Shop's merchant ID in KBank's system.
+          example: BEV06000080200
+        terminalId:
+          type: string
+          maxLength: 8
+          description: Shop's terminal ID in KBank's system
+          example: 09000107
+        qrType:
+          type: string
+          maxLength: 1
+          description: 1 = Alipay , 2 = WeChat Pay , 3 = ThaiQR
+          example: 3
+      required:  
+        - partnerTxnUid
+        - partnerId
+        - partnerSecret
+        - requestDt
+        - merchantId
+        - qrType
+        - shopLocation
+        
+    settlementResponse:
+      properties:
+        partnerTxnUid:
+          type: string
+          maxLength: 15
+          description: This value will be copied from request message..
+          example: "STM001030118001"
+        partnerId:
+          type: string
+          maxLength: 10
+          description: This value will be copied from request message.
+          example: "POS001"
+        statusCode:
+          type: string
+          maxLength: 2
+          description: 00 = Success , 10 = Error.
+          example: "00"
+        errorCode:
+          type: string
+          maxLength: 35
+          description: Code to identify the error.
+          example: 
+        errorDesc:
+          type: string
+          maxLength: 150
+          description: Description of the error.
+          example: 
+        settlementAmount:
+          type: number
+          description: The settlement amount.
+          example: 150000 
+        settlementCurrencyCode:
+          type: string
+          maxLength: 3
+          description: Currency code of settlement amount in ISO 4217. Currently support only 'THB'.
+          example: THB
+        accountNo:
+          type: string
+          maxLength: 13
+          description: Account number that the amount is settled.
+          example: xxx-2-04553-x
+        accountName:
+          type: string
+          maxLength: 100
+          description: Name of account that the amount is settled.
+          example: นายสมชาย รักกสิกร  
+      required: 
+        - partnerTxnUid
+        - partnerId
+        - statusCode
